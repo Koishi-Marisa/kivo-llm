@@ -212,13 +212,16 @@ function normalize(value: string): string {
 }
 
 function scoreEntry(entry: CharacterIndexEntry, query: string): number {
-  const fields = [
+  const fullNames = [
     entry.names.cn,
     entry.names.wiki,
     entry.names.jp,
     entry.names.kr,
     entry.names.en,
     entry.names.zh_tw,
+  ].filter(Boolean);
+  const nameParts = fullNames.flatMap((name) => name.split(/\s+/).filter(Boolean));
+  const extras = [
     entry.displayName,
     entry.skin.cn,
     entry.skin.jp,
@@ -228,13 +231,21 @@ function scoreEntry(entry: CharacterIndexEntry, query: string): number {
   ].filter(Boolean);
 
   let best = 0;
-  for (const field of fields) {
+  const consider = (field: string, allowSubstring: boolean) => {
     const value = normalize(field);
-    if (!value) continue;
+    if (!value) return;
     if (value === query) best = Math.max(best, 100);
     else if (value.startsWith(query)) best = Math.max(best, 80);
-    else if (value.includes(query)) best = Math.max(best, 60);
+    else if (allowSubstring && value.includes(query)) best = Math.max(best, 60);
+  };
+
+  for (const name of fullNames) {
+    // Spaced full names can match across word boundaries (e.g. "미카" inside
+    // "이사미 카에데"), so only unspaced names allow substring matching.
+    consider(name, !/\s/.test(name));
   }
+  for (const part of nameParts) consider(part, true);
+  for (const extra of extras) consider(extra, true);
 
   if (best > 0 && !entry.skin.cn) best += 2;
   return best;
