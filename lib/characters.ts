@@ -316,6 +316,9 @@ export function listCharacters(options: {
 }
 
 export async function getCharacterDoc(id: number): Promise<CharacterDoc | null> {
+  const indexEntry = BY_ID.get(id);
+  if (!indexEntry) return null;
+
   let student: Record<string, any>;
   try {
     student = await getStudent(id);
@@ -327,7 +330,6 @@ export async function getCharacterDoc(id: number): Promise<CharacterDoc | null> 
   }
   if (!student.is_install_cn) return null;
 
-  const indexEntry = BY_ID.get(id);
   const names = toNames(student);
   const skin = {
     cn: student.skin_cn || student.skin || "",
